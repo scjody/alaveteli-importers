@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+# The list of organizations in Québec that accept access to
+# information requests (La Répertoire) is available in PDF form here:
+# http://www.cai.gouv.qc.ca/documents/CAI_liste_resp_acces.pdf
+
+# This script takes a "half way" CSV file produced manually and turns
+# it into a CSV that Alaveteli can import.  It's a pretty quick hack
+# and I'm working on a better one.
+
+# Usage: fix_repertoire < input.csv > output.csv
+
+use strict;
+use warnings;
+
+use Text::CSV;
+
+my %types = (
+  'Agence de la santé' => 'Santé',
+  'Autre organisme gouvernemental' => '',
+  'Cégep' => 'Cégep Éducation',
+  'Centre de communications Santé (911)' => 'Santé',
+  'Centre de jeunesse' => 'Jeunesse',
+  'Centre de santé et de services sociaux (CSSS)' => 'Santé CSSS',
+  "Centre d'hébergement et de réadaptation" => 'Santé',
+  'Centre hospitalier' => 'Santé',
+  'Commission scolaire / école', => 'École Éducation',
+  'Établissement privé subventionné' => 'Privé',
+  'Ministère' => 'Ministère',
+  'Muncipalité' => 'Municipalité Municipal',
+  'Municipalité régionale de comté' => 'Municipalité Municipal',
+  "Office municipal d'habitation" => 'Habitation',
+  'Ordre professionnel' => 'Ordre',
+  'Organisme municipal', => 'Municipal',
+  'Régie intermunicipale', => 'Municipal',
+  'Université', => 'Université Éducation',
+);
+
+print "#id,name,request_email,tag_string\n";
+
+my $csv = Text::CSV->new({binary => 1}) or die;
+
+my %names;
+my $skipped_no_email = 0;
+
+while (my $row = $csv->getline(\*STDIN)) {
+  my $id = $row->[0];
+  next unless $id =~ /\d+/;
+
+  my $name = $row->[1];
+  my $munged_name = uc($name);
+  $munged_name =~ s/[^\d\w]//g;
+  if ($names{$munged_name}) {
+    next;
+  }
+  $names{$munged_name}++;
+
+  my $email = $row->[13];
+  unless ($email =~ /.*@.*\..*/) {
+    $skipped_no_email++;
+    next;
+  }
+  $email =~ s/$/.fake/;
+
+  my $type = $row->[2];
+  my $tags = "";
+  if (defined $types{$type}) {
+    $tags = $types{$type};
+  } else {
+    die "  No type for ($type)\n";
+  }
+
+  print "$id,\"$name\",$email,$tags\n";
+}
+
+warn "Skipped, no email = $skipped_no_email\n"
