@@ -1,6 +1,8 @@
 alaveteli-importers
 ===================
 
+**This has been superseded by https://github.com/opennorth/publicbodies-scrapers**
+
 Importers for use with Alaveteli
 
 The list of organizations in Québec that accept access to information requests (La Répertoire) is available in PDF form here:
